@@ -7,7 +7,7 @@ export interface ColorPaletteItem {
 export interface PixelArtwork {
   id: string;
   title: string;
-  category: 'Animals' | 'Food' | 'Fantasy' | 'Nature' | 'Pop Culture' | 'AI Generated' | 'Custom Upload';
+  category: 'Animals' | 'Anime' | 'Famous Art' | 'Food' | 'Fantasy' | 'Nature' | 'Pop Culture' | 'AI Generated' | 'Custom Upload';
   difficulty: 'Easy' | 'Medium' | 'Hard' | 'Expert';
   width: number;
   height: number;

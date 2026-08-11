@@ -1,4 +1,5 @@
 import { ColorPaletteItem, PixelArtwork } from '../types';
+import { centerArtworkGrid } from './gridUtils';
 
 // Convert hex to RGB tuple
 function hexToRgb(hex: string): [number, number, number] {
@@ -226,7 +227,7 @@ export async function convertImageToPixelArt(
         width: targetWidth,
         height: targetHeight,
         palette,
-        grid,
+        grid: centerArtworkGrid(grid),
         isUserCreated: true,
         createdAt: Date.now(),
       };

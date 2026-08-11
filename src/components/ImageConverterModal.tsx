@@ -253,7 +253,7 @@ export const ImageConverterModal: React.FC<ImageConverterModalProps> = ({
               step="2"
               value={gridSize}
               onChange={(e) => setGridSize(Number(e.target.value))}
-              className="w-full accent-[#967259] dark:accent-zinc-100 bg-stone-200 dark:bg-zinc-700 h-2 rounded-lg cursor-pointer"
+              className="w-full accent-white dark:accent-black bg-stone-300 dark:bg-zinc-800 h-2 rounded-lg cursor-pointer"
             />
             <div className="flex justify-between text-[10px] text-stone-400 dark:text-zinc-500 font-mono">
               <span>12px (Tiny)</span>
@@ -321,7 +321,7 @@ export const ImageConverterModal: React.FC<ImageConverterModalProps> = ({
               step="1"
               value={maxColors}
               onChange={(e) => setMaxColors(Number(e.target.value))}
-              className="w-full accent-[#967259] dark:accent-zinc-100 bg-stone-200 dark:bg-zinc-700 h-2 rounded-lg cursor-pointer"
+              className="w-full accent-white dark:accent-black bg-stone-300 dark:bg-zinc-800 h-2 rounded-lg cursor-pointer"
             />
             <div className="flex justify-between text-[10px] text-stone-400 dark:text-zinc-500 font-mono">
               <span>4 Colors (Simple)</span>

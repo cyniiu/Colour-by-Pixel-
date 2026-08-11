@@ -26,7 +26,7 @@ export const GalleryView: React.FC<GalleryViewProps> = ({
   const [selectedStatus, setSelectedStatus] = useState<'All' | 'In Progress' | 'Completed'>('All');
   const [searchQuery, setSearchQuery] = useState<string>('');
 
-  const categories = ['All', 'Animals', 'Food', 'Fantasy', 'Nature', 'Pop Culture', 'AI Generated', 'Custom Upload'];
+  const categories = ['All', 'Animals', 'Anime', 'Famous Art', 'Food', 'Fantasy', 'Nature', 'Pop Culture', 'AI Generated', 'Custom Upload'];
 
   const filteredArtworks = artworks.filter((art) => {
     // Search query match

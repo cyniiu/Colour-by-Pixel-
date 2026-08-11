@@ -1,3 +1,11 @@
 @import "tailwindcss";
 
 @variant dark (&:where(.dark, .dark *));
+
+input[type="range"] {
+  accent-color: #ffffff;
+}
+
+.dark input[type="range"] {
+  accent-color: #000000;
+}

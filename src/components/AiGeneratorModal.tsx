@@ -170,7 +170,7 @@ export const AiGeneratorModal: React.FC<AiGeneratorModalProps> = ({
               step="1"
               value={colorCount}
               onChange={(e) => setColorCount(Number(e.target.value))}
-              className="w-full accent-[#967259] dark:accent-zinc-100 bg-stone-200 dark:bg-zinc-700 h-2 rounded-lg cursor-pointer"
+              className="w-full accent-white dark:accent-black bg-stone-300 dark:bg-zinc-800 h-2 rounded-lg cursor-pointer"
             />
           </div>
 
