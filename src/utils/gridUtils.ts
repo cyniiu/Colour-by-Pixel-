@@ -52,3 +52,25 @@ export function centerArtworkGrid(grid: number[][]): number[][] {
 
   return newGrid;
 }
+
+export function rescaleGrid(grid: number[][], targetSize: number): number[][] {
+  const height = grid.length;
+  if (height === 0) return grid;
+  const width = grid[0].length;
+  if (width === 0) return grid;
+
+  if (height === targetSize && width === targetSize) return centerArtworkGrid(grid);
+
+  const newGrid: number[][] = Array.from({ length: targetSize }, () => Array(targetSize).fill(0));
+
+  for (let r = 0; r < targetSize; r++) {
+    const origR = Math.min(height - 1, Math.floor((r / targetSize) * height));
+    for (let c = 0; c < targetSize; c++) {
+      const origC = Math.min(width - 1, Math.floor((c / targetSize) * width));
+      newGrid[r][c] = grid[origR][origC];
+    }
+  }
+
+  return centerArtworkGrid(newGrid);
+}
+

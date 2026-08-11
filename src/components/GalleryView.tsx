@@ -12,6 +12,7 @@ interface GalleryViewProps {
   onResetArtworkProgress: (id: string) => void;
   onCompleteArtwork?: (id: string) => void;
   onCompleteAllArtworks?: () => void;
+  onResetAllProgress?: () => void;
 }
 
 export const GalleryView: React.FC<GalleryViewProps> = ({
@@ -24,6 +25,7 @@ export const GalleryView: React.FC<GalleryViewProps> = ({
   onResetArtworkProgress,
   onCompleteArtwork,
   onCompleteAllArtworks,
+  onResetAllProgress,
 }) => {
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [selectedDifficulty, setSelectedDifficulty] = useState<string>('All');
@@ -183,6 +185,17 @@ export const GalleryView: React.FC<GalleryViewProps> = ({
               >
                 <CheckCircle2 className="w-4 h-4 text-amber-200 dark:text-emerald-700" />
                 <span>Complete All</span>
+              </button>
+            )}
+
+            {onResetAllProgress && (
+              <button
+                onClick={onResetAllProgress}
+                className="px-3.5 py-2 bg-stone-100 dark:bg-zinc-800 hover:bg-stone-200 dark:hover:bg-zinc-700 text-stone-700 dark:text-zinc-200 font-bold text-xs rounded-xl border border-stone-200 dark:border-zinc-700 flex items-center gap-1.5 transition-all cursor-pointer"
+                title="Reset progress for all artworks to 0%"
+              >
+                <RotateCcw className="w-3.5 h-3.5 text-stone-500 dark:text-zinc-400" />
+                <span>Reset All</span>
               </button>
             )}
 

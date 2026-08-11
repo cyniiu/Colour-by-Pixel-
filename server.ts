@@ -72,13 +72,14 @@ async function startServer() {
   // AI Pixel Art Generator API
   app.post('/api/generate-pixel-art', async (req, res) => {
     try {
-      const { prompt, gridSize = 16, colorCount = 8, category = 'AI Generated' } = req.body;
+      const { prompt, gridSize = 30, colorCount = 8, category = 'AI Generated' } = req.body;
 
       if (!prompt || typeof prompt !== 'string') {
         return res.status(400).json({ error: 'Prompt string is required' });
       }
 
-      const dimension = Number(gridSize) === 32 ? 32 : Number(gridSize) === 24 ? 24 : 16;
+      const requestedDim = Number(gridSize) || 30;
+      const dimension = requestedDim >= 36 ? 40 : requestedDim >= 25 ? 30 : 20;
       const numColors = Math.min(Math.max(Number(colorCount) || 6, 4), 12);
 
       const systemInstruction = `You are a master 8-bit / 16-bit pixel artist and color-by-number puzzle architect.

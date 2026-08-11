@@ -14,7 +14,7 @@ export const AiGeneratorModal: React.FC<AiGeneratorModalProps> = ({
   onArtworkGenerated,
 }) => {
   const [prompt, setPrompt] = useState('');
-  const [gridSize, setGridSize] = useState<16 | 24 | 32>(16);
+  const [gridSize, setGridSize] = useState<20 | 30 | 40>(30);
   const [colorCount, setColorCount] = useState<number>(8);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -136,14 +136,14 @@ export const AiGeneratorModal: React.FC<AiGeneratorModalProps> = ({
             </label>
             <div className="grid grid-cols-3 gap-2">
               {[
-                { size: 16, label: '16x16', diff: 'Easy' },
-                { size: 24, label: '24x24', diff: 'Medium' },
-                { size: 32, label: '32x32', diff: 'Hard' },
+                { size: 20, label: '20x20', diff: 'Easy' },
+                { size: 30, label: '30x30', diff: 'Medium' },
+                { size: 40, label: '40x40', diff: 'Hard' },
               ].map((opt) => (
                 <button
                   key={opt.size}
                   type="button"
-                  onClick={() => setGridSize(opt.size as 16 | 24 | 32)}
+                  onClick={() => setGridSize(opt.size as 20 | 30 | 40)}
                   className={`p-2.5 rounded-xl border text-center transition-all ${
                     gridSize === opt.size
                       ? 'bg-[#967259] dark:bg-zinc-100 border-[#967259] dark:border-zinc-100 text-white dark:text-zinc-900 shadow-xs'

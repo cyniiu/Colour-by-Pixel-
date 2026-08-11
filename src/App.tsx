@@ -201,8 +201,7 @@ export default function App() {
       }
     }
 
-    const existingProgress = savedProgressMap[activeArtwork.id];
-    const isCompleted = (total > 0 && painted >= total) || Boolean(existingProgress?.isCompleted);
+    const isCompleted = total > 0 && painted >= total;
 
     const progressItem: SavedProgress = {
       paintedGrid,
@@ -311,46 +310,25 @@ export default function App() {
     }
   }, [allArtworks, savedProgressMap, activeArtwork, userId]);
 
-  // Auto-complete / repair all artworks on mount so previously completed artworks are restored
+  // Reset progress for ALL artworks
+  const handleResetAllProgress = useCallback(() => {
+    setSavedProgressMap({});
+    try {
+      localStorage.removeItem('pixel_progress_v1');
+    } catch {}
+
+    if (activeArtwork) {
+      setPaintedGrid(Array.from({ length: activeArtwork.height }, () => Array(activeArtwork.width).fill(0)));
+    }
+  }, [activeArtwork]);
+
+  // Clean reset on mount to ensure all artworks start with fresh 0% progress
   useEffect(() => {
-    if (allArtworks.length === 0) return;
-
-    setSavedProgressMap((prevMap) => {
-      let changed = false;
-      const nextMap = { ...prevMap };
-
-      allArtworks.forEach((art) => {
-        const existing = prevMap[art.id];
-        const completedGrid = art.grid.map((row) => [...row]);
-
-        if (!existing || !existing.isCompleted) {
-          nextMap[art.id] = {
-            paintedGrid: completedGrid,
-            isCompleted: true,
-            timeSpentSeconds: existing?.timeSpentSeconds || 60,
-            lastModified: Date.now(),
-          };
-          changed = true;
-        } else if (existing.isCompleted) {
-          // Sync paintedGrid to new centered artwork grid
-          nextMap[art.id] = {
-            ...existing,
-            paintedGrid: completedGrid,
-            isCompleted: true,
-          };
-          changed = true;
-        }
-      });
-
-      if (changed) {
-        try {
-          localStorage.setItem('pixel_progress_v1', JSON.stringify(nextMap));
-        } catch {}
-        return nextMap;
-      }
-      return prevMap;
-    });
-  }, [allArtworks]);
+    try {
+      localStorage.removeItem('pixel_progress_v1');
+    } catch {}
+    setSavedProgressMap({});
+  }, []);
 
   // Record undo history
   const handleRecordHistory = useCallback((grid: number[][]) => {
@@ -508,6 +486,7 @@ export default function App() {
             onResetArtworkProgress={handleResetArtworkProgress}
             onCompleteArtwork={handleCompleteArtwork}
             onCompleteAllArtworks={handleCompleteAllArtworks}
+            onResetAllProgress={handleResetAllProgress}
           />
         ) : (
           <div className="relative w-full h-full pb-28">

@@ -1,5 +1,5 @@
 import { PixelArtwork } from '../types';
-import { centerArtworkGrid } from '../utils/gridUtils';
+import { centerArtworkGrid, rescaleGrid } from '../utils/gridUtils';
 
 const RAW_TEMPLATE_ARTWORKS: PixelArtwork[] = [
   {
@@ -1016,7 +1016,20 @@ const RAW_TEMPLATE_ARTWORKS: PixelArtwork[] = [
   }
 ];
 
-export const TEMPLATE_ARTWORKS: PixelArtwork[] = RAW_TEMPLATE_ARTWORKS.map(art => ({
-  ...art,
-  grid: centerArtworkGrid(art.grid),
-}));
+export const TEMPLATE_ARTWORKS: PixelArtwork[] = RAW_TEMPLATE_ARTWORKS.map(art => {
+  let targetSize = 30;
+  if (['boba_tea_16', 'pizza_slice_16', 'ice_cream_16', 'cozy_coffee_16', 'super_mushroom_16', 'magic_gem_16'].includes(art.id)) {
+    targetSize = 20;
+  } else if (['cyber_mecha_20', 'cosmic_saturn_24', 'starry_night_24', 'great_wave_24', 'mona_lisa_20', 'pearl_earring_20', 'sunset_mountain_24'].includes(art.id)) {
+    targetSize = 40;
+  } else {
+    targetSize = 30;
+  }
+
+  return {
+    ...art,
+    width: targetSize,
+    height: targetSize,
+    grid: rescaleGrid(art.grid, targetSize),
+  };
+});
