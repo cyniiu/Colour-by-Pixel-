@@ -1,0 +1,6 @@
+{
+  "name": "Color by Pixel",
+  "description": "Interactive color by pixel app with template library, AI artwork generator, image-to-pixel converter, zoom canvas, flood fill, and audio effects.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,45 @@
+{
+  "entities": {
+    "users": {
+      "title": "User Profile",
+      "description": "User profiles and settings",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "createdAt": { "type": "number" },
+        "isAnonymous": { "type": "boolean" }
+      },
+      "required": ["uid"]
+    },
+    "progress": {
+      "title": "User Artwork Progress",
+      "description": "Long-term painting progress per artwork",
+      "type": "object",
+      "properties": {
+        "paintedGrid": { "type": "array" },
+        "isCompleted": { "type": "boolean" },
+        "timeSpentSeconds": { "type": "number" },
+        "lastModified": { "type": "number" }
+      },
+      "required": ["paintedGrid", "isCompleted", "lastModified"]
+    },
+    "customArtworks": {
+      "title": "Custom Pixel Artworks",
+      "description": "User created or AI generated pixel art puzzles",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "category": { "type": "string" },
+        "difficulty": { "type": "string" },
+        "width": { "type": "number" },
+        "height": { "type": "number" },
+        "palette": { "type": "array" },
+        "grid": { "type": "array" },
+        "createdAt": { "type": "number" },
+        "isUserCreated": { "type": "boolean" }
+      },
+      "required": ["id", "title", "width", "height", "palette", "grid"]
+    }
+  }
+}
