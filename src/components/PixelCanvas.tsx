@@ -299,9 +299,10 @@ export const PixelCanvas: React.FC<PixelCanvasProps> = ({
 
     const cellSize = baseCellSize;
     const isDark = document.documentElement.classList.contains('dark');
+    const isCustomImage = artwork.category === 'Custom Upload';
 
-    // Clear background
-    ctx.fillStyle = isDark ? '#18181B' : '#EAE6DF'; // Dark charcoal grey vs Light beige slate void
+    // Clear background (Light grey in dark mode, white in light mode for standard art; dark/beige for custom uploads)
+    ctx.fillStyle = !isCustomImage ? (isDark ? '#D4D4D8' : '#FFFFFF') : (isDark ? '#18181B' : '#EAE6DF');
     ctx.fillRect(0, 0, canvasWidth, canvasHeight);
 
     const now = Date.now();
@@ -316,9 +317,14 @@ export const PixelCanvas: React.FC<PixelCanvasProps> = ({
         const paintedColorId = paintedGrid[r][c];
 
         if (targetColorId === 0) {
-          // Checkerboard background for transparent cells
-          const isEven = (r + c) % 2 === 0;
-          ctx.fillStyle = isEven ? (isDark ? '#18181B' : '#FAF7F2') : (isDark ? '#27272A' : '#E5E0D8');
+          if (!isCustomImage) {
+            // Light grey in dark mode, white in light mode for standard artwork empty cells
+            ctx.fillStyle = isDark ? '#D4D4D8' : '#FFFFFF';
+          } else {
+            // Checkerboard background for custom image transparent cells
+            const isEven = (r + c) % 2 === 0;
+            ctx.fillStyle = isEven ? (isDark ? '#18181B' : '#FFFFFF') : (isDark ? '#27272A' : '#F5F5F5');
+          }
           ctx.fillRect(x, y, cellSize, cellSize);
           continue;
         }
@@ -337,7 +343,7 @@ export const PixelCanvas: React.FC<PixelCanvasProps> = ({
           ctx.strokeRect(x, y, cellSize, cellSize);
         } else {
           // Unpainted cell background
-          ctx.fillStyle = isDark ? '#27272A' : '#F5F2EB'; // Dark grey cell vs light unpainted cell
+          ctx.fillStyle = isDark ? '#27272A' : '#FFFFFF'; // Dark grey cell vs white unpainted cell
           ctx.fillRect(x, y, cellSize, cellSize);
 
           // Check if cell matches active selected color
@@ -376,7 +382,7 @@ export const PixelCanvas: React.FC<PixelCanvasProps> = ({
       ref={containerRef}
       onWheel={handleWheel}
       onContextMenu={(e) => e.preventDefault()}
-      className="relative w-full h-[calc(100vh-14rem)] flex items-center justify-center overflow-hidden bg-[#FAF7F2] dark:bg-zinc-900 cursor-crosshair select-none transition-colors duration-200"
+      className="relative w-full h-[calc(100vh-14rem)] flex items-center justify-center overflow-hidden bg-white dark:bg-[#7F7C79] cursor-crosshair select-none transition-colors duration-200"
     >
       {/* Zoomable & Pannable Container */}
       <div

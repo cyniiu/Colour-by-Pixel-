@@ -36,7 +36,9 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
     const paletteMap = new Map<number, string>();
     artwork.palette.forEach((p) => paletteMap.set(p.id, p.hex));
 
-    ctx.fillStyle = '#EAE6DF';
+    const isDark = document.documentElement.classList.contains('dark');
+    const isCustomImage = artwork.category === 'Custom Upload';
+    ctx.fillStyle = !isCustomImage ? (isDark ? '#D4D4D8' : '#FFFFFF') : '#EAE6DF';
     ctx.fillRect(0, 0, exportSize, exportSize);
 
     for (let r = 0; r < artwork.height; r++) {
@@ -44,6 +46,9 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
         const colorId = artwork.grid[r][c];
         if (colorId > 0) {
           ctx.fillStyle = paletteMap.get(colorId) || '#A8A29E';
+          ctx.fillRect(c * cellW, r * cellH, cellW, cellH);
+        } else if (!isCustomImage) {
+          ctx.fillStyle = isDark ? '#D4D4D8' : '#FFFFFF';
           ctx.fillRect(c * cellW, r * cellH, cellW, cellH);
         }
       }
@@ -110,7 +115,9 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
     const paletteMap = new Map<number, string>();
     artwork.palette.forEach((p) => paletteMap.set(p.id, p.hex));
 
-    ctx.fillStyle = '#EAE6DF';
+    const isDark = document.documentElement.classList.contains('dark');
+    const isCustomImage = artwork.category === 'Custom Upload';
+    ctx.fillStyle = !isCustomImage ? (isDark ? '#D4D4D8' : '#FFFFFF') : '#EAE6DF';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     for (let r = 0; r < artwork.height; r++) {
@@ -118,6 +125,9 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
         const colorId = artwork.grid[r][c];
         if (colorId > 0) {
           ctx.fillStyle = paletteMap.get(colorId) || '#A8A29E';
+          ctx.fillRect(c * scale, r * scale, scale, scale);
+        } else if (!isCustomImage) {
+          ctx.fillStyle = isDark ? '#D4D4D8' : '#FFFFFF';
           ctx.fillRect(c * scale, r * scale, scale, scale);
         }
       }

@@ -362,7 +362,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#FAF7F2] dark:bg-zinc-900 text-stone-800 dark:text-zinc-100 flex flex-col font-sans selection:bg-stone-700 selection:text-white transition-colors duration-300">
+    <div className="min-h-screen bg-white dark:bg-[#7F7C79] text-stone-800 dark:text-zinc-100 flex flex-col font-sans selection:bg-stone-700 selection:text-white transition-colors duration-300">
       
       {/* Top Header Navbar */}
       <Navbar

@@ -405,13 +405,22 @@ const ArtworkThumbnail: React.FC<{ artwork: PixelArtwork; progressData?: SavedPr
     artwork.palette.forEach(p => paletteMap.set(p.id, p.hex));
 
     const isDark = document.documentElement.classList.contains('dark');
-    ctx.fillStyle = isDark ? '#18181B' : '#EAE6DF';
+    const isCustomImage = artwork.category === 'Custom Upload';
+
+    // Set background fill (light grey in dark mode, white in light mode for standard art)
+    ctx.fillStyle = !isCustomImage ? (isDark ? '#D4D4D8' : '#FFFFFF') : (isDark ? '#18181B' : '#EAE6DF');
     ctx.fillRect(0, 0, size, size);
 
     for (let r = 0; r < artwork.height; r++) {
       for (let c = 0; c < artwork.width; c++) {
         const targetColor = artwork.grid[r][c];
-        if (targetColor === 0) continue;
+        if (targetColor === 0) {
+          if (!isCustomImage) {
+            ctx.fillStyle = isDark ? '#D4D4D8' : '#FFFFFF';
+            ctx.fillRect(c * cellW, r * cellH, cellW, cellH);
+          }
+          continue;
+        }
 
         const isPainted = progressData?.paintedGrid?.[r]?.[c] === targetColor;
 
