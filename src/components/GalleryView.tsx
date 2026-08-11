@@ -10,6 +10,8 @@ interface GalleryViewProps {
   onOpenUploadModal: () => void;
   onDeleteCustomArtwork: (id: string) => void;
   onResetArtworkProgress: (id: string) => void;
+  onCompleteArtwork?: (id: string) => void;
+  onCompleteAllArtworks?: () => void;
 }
 
 export const GalleryView: React.FC<GalleryViewProps> = ({
@@ -20,6 +22,8 @@ export const GalleryView: React.FC<GalleryViewProps> = ({
   onOpenUploadModal,
   onDeleteCustomArtwork,
   onResetArtworkProgress,
+  onCompleteArtwork,
+  onCompleteAllArtworks,
 }) => {
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [selectedDifficulty, setSelectedDifficulty] = useState<string>('All');
@@ -171,6 +175,17 @@ export const GalleryView: React.FC<GalleryViewProps> = ({
 
           {/* Right Action Controls */}
           <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+            {onCompleteAllArtworks && (
+              <button
+                onClick={onCompleteAllArtworks}
+                className="px-3.5 py-2 bg-[#967259] dark:bg-zinc-100 hover:bg-[#805D46] dark:hover:bg-white text-white dark:text-zinc-900 font-bold text-xs rounded-xl shadow-xs flex items-center gap-1.5 transition-all cursor-pointer"
+                title="Mark all artworks as 100% completed"
+              >
+                <CheckCircle2 className="w-4 h-4 text-amber-200 dark:text-emerald-700" />
+                <span>Complete All</span>
+              </button>
+            )}
+
             <button
               onClick={handleRandomArtwork}
               className="px-3.5 py-2 bg-[#F5EBE1] dark:bg-zinc-800 hover:bg-[#EAE0D5] dark:hover:bg-zinc-700 text-[#5C4033] dark:text-zinc-200 font-bold text-xs rounded-xl border border-[#D0BFB0] dark:border-zinc-700 flex items-center gap-2 transition-all"
@@ -348,6 +363,19 @@ export const GalleryView: React.FC<GalleryViewProps> = ({
                   <span>{progressPercent > 0 ? 'Continue' : 'Paint'}</span>
                 </button>
 
+                {onCompleteArtwork && !isCompleted && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onCompleteArtwork(artwork.id);
+                    }}
+                    className="p-1.5 text-stone-500 dark:text-zinc-400 hover:text-emerald-700 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-zinc-800 rounded-lg transition-colors flex items-center gap-1"
+                    title="Mark artwork as completed"
+                  >
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                  </button>
+                )}
+
                 {progressPercent > 0 && (
                   <button
                     onClick={(e) => {
@@ -422,7 +450,7 @@ const ArtworkThumbnail: React.FC<{ artwork: PixelArtwork; progressData?: SavedPr
           continue;
         }
 
-        const isPainted = progressData?.paintedGrid?.[r]?.[c] === targetColor;
+        const isPainted = Boolean(progressData?.isCompleted) || progressData?.paintedGrid?.[r]?.[c] === targetColor;
 
         if (isPainted) {
           ctx.fillStyle = paletteMap.get(targetColor) || '#A8A29E';

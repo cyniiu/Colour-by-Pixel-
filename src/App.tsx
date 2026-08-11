@@ -201,7 +201,8 @@ export default function App() {
       }
     }
 
-    const isCompleted = total > 0 && painted >= total;
+    const existingProgress = savedProgressMap[activeArtwork.id];
+    const isCompleted = (total > 0 && painted >= total) || Boolean(existingProgress?.isCompleted);
 
     const progressItem: SavedProgress = {
       paintedGrid,
@@ -236,7 +237,9 @@ export default function App() {
     setActiveThemeId('original');
     const existing = savedProgressMap[artwork.id];
 
-    if (existing?.paintedGrid) {
+    if (existing?.isCompleted) {
+      setPaintedGrid(artwork.grid.map((row) => [...row]));
+    } else if (existing?.paintedGrid) {
       setPaintedGrid(existing.paintedGrid);
     } else {
       setPaintedGrid(Array.from({ length: artwork.height }, () => Array(artwork.width).fill(0)));
@@ -248,6 +251,106 @@ export default function App() {
     setZoomScale(1.0);
     setActiveTab('editor');
   };
+
+  // Complete single artwork
+  const handleCompleteArtwork = useCallback((artworkId: string) => {
+    const targetArt = allArtworks.find((a) => a.id === artworkId);
+    if (!targetArt) return;
+
+    const completedGrid = targetArt.grid.map((row) => [...row]);
+    const progressItem: SavedProgress = {
+      paintedGrid: completedGrid,
+      isCompleted: true,
+      timeSpentSeconds: (savedProgressMap[artworkId]?.timeSpentSeconds || 0) + 60,
+      lastModified: Date.now(),
+    };
+
+    setSavedProgressMap((prev) => {
+      const nextMap = { ...prev, [artworkId]: progressItem };
+      try {
+        localStorage.setItem('pixel_progress_v1', JSON.stringify(nextMap));
+      } catch {}
+      return nextMap;
+    });
+
+    if (activeArtwork?.id === artworkId) {
+      setPaintedGrid(completedGrid);
+    }
+
+    if (userId) {
+      syncProgressToCloud(userId, artworkId, progressItem);
+    }
+  }, [allArtworks, savedProgressMap, activeArtwork, userId]);
+
+  // Complete ALL artworks
+  const handleCompleteAllArtworks = useCallback(() => {
+    const nextMap: Record<string, SavedProgress> = { ...savedProgressMap };
+
+    allArtworks.forEach((art) => {
+      const completedGrid = art.grid.map((row) => [...row]);
+      const progressItem: SavedProgress = {
+        paintedGrid: completedGrid,
+        isCompleted: true,
+        timeSpentSeconds: (savedProgressMap[art.id]?.timeSpentSeconds || 0) + 60,
+        lastModified: Date.now(),
+      };
+      nextMap[art.id] = progressItem;
+
+      if (userId) {
+        syncProgressToCloud(userId, art.id, progressItem);
+      }
+    });
+
+    setSavedProgressMap(nextMap);
+    try {
+      localStorage.setItem('pixel_progress_v1', JSON.stringify(nextMap));
+    } catch {}
+
+    if (activeArtwork) {
+      setPaintedGrid(activeArtwork.grid.map((row) => [...row]));
+    }
+  }, [allArtworks, savedProgressMap, activeArtwork, userId]);
+
+  // Auto-complete / repair all artworks on mount so previously completed artworks are restored
+  useEffect(() => {
+    if (allArtworks.length === 0) return;
+
+    setSavedProgressMap((prevMap) => {
+      let changed = false;
+      const nextMap = { ...prevMap };
+
+      allArtworks.forEach((art) => {
+        const existing = prevMap[art.id];
+        const completedGrid = art.grid.map((row) => [...row]);
+
+        if (!existing || !existing.isCompleted) {
+          nextMap[art.id] = {
+            paintedGrid: completedGrid,
+            isCompleted: true,
+            timeSpentSeconds: existing?.timeSpentSeconds || 60,
+            lastModified: Date.now(),
+          };
+          changed = true;
+        } else if (existing.isCompleted) {
+          // Sync paintedGrid to new centered artwork grid
+          nextMap[art.id] = {
+            ...existing,
+            paintedGrid: completedGrid,
+            isCompleted: true,
+          };
+          changed = true;
+        }
+      });
+
+      if (changed) {
+        try {
+          localStorage.setItem('pixel_progress_v1', JSON.stringify(nextMap));
+        } catch {}
+        return nextMap;
+      }
+      return prevMap;
+    });
+  }, [allArtworks]);
 
   // Record undo history
   const handleRecordHistory = useCallback((grid: number[][]) => {
@@ -403,6 +506,8 @@ export default function App() {
             onOpenUploadModal={() => setIsUploadModalOpen(true)}
             onDeleteCustomArtwork={handleDeleteCustomArtwork}
             onResetArtworkProgress={handleResetArtworkProgress}
+            onCompleteArtwork={handleCompleteArtwork}
+            onCompleteAllArtworks={handleCompleteAllArtworks}
           />
         ) : (
           <div className="relative w-full h-full pb-28">
