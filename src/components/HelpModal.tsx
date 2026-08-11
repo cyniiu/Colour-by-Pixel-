@@ -65,7 +65,7 @@ export const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose }) => {
               <p className="font-bold text-stone-900 dark:text-zinc-100 text-sm">Use Power Tools</p>
               <div className="mt-1 space-y-1 text-stone-600 dark:text-zinc-400">
                 <p className="flex items-center gap-1.5"><PaintBucket className="w-3.5 h-3.5 text-stone-700 dark:text-zinc-300" /> <span className="font-semibold text-stone-900 dark:text-zinc-200">Fill Bucket:</span> Color connected cells of the same number instantly.</p>
-                <p className="flex items-center gap-1.5"><Wand2 className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" /> <span className="font-semibold text-stone-900 dark:text-zinc-200">Magic Wand:</span> Auto-fill up to 12 matching cells for active color.</p>
+                <p className="flex items-center gap-1.5"><Wand2 className="w-3.5 h-3.5 text-amber-600 dark:text-zinc-200" /> <span className="font-semibold text-stone-900 dark:text-zinc-200">Magic Wand:</span> Auto-fill up to 12 matching cells for active color.</p>
                 <p className="flex items-center gap-1.5"><Eraser className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400" /> <span className="font-semibold text-stone-900 dark:text-zinc-200">Eraser:</span> Clear misclicked pixels.</p>
               </div>
             </div>

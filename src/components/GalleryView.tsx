@@ -404,7 +404,8 @@ const ArtworkThumbnail: React.FC<{ artwork: PixelArtwork; progressData?: SavedPr
     const paletteMap = new Map<number, string>();
     artwork.palette.forEach(p => paletteMap.set(p.id, p.hex));
 
-    ctx.fillStyle = '#EAE6DF';
+    const isDark = document.documentElement.classList.contains('dark');
+    ctx.fillStyle = isDark ? '#18181B' : '#EAE6DF';
     ctx.fillRect(0, 0, size, size);
 
     for (let r = 0; r < artwork.height; r++) {
@@ -418,7 +419,7 @@ const ArtworkThumbnail: React.FC<{ artwork: PixelArtwork; progressData?: SavedPr
           ctx.fillStyle = paletteMap.get(targetColor) || '#A8A29E';
         } else {
           // Semi transparent unpainted preview
-          ctx.fillStyle = 'rgba(180, 170, 160, 0.4)';
+          ctx.fillStyle = isDark ? 'rgba(82, 82, 91, 0.5)' : 'rgba(180, 170, 160, 0.4)';
         }
 
         ctx.fillRect(c * cellW, r * cellH, cellW, cellH);

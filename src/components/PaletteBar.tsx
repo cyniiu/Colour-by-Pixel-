@@ -108,7 +108,7 @@ export const PaletteBar: React.FC<PaletteBarProps> = ({
             }`}
             title="Magic Wand: Auto-fill remaining pixels for selected color"
           >
-            <Wand2 className="w-3.5 h-3.5 text-amber-200 dark:text-amber-400" />
+            <Wand2 className="w-3.5 h-3.5 text-amber-600 dark:text-zinc-200" />
             <span>Magic</span>
           </button>
 

@@ -301,7 +301,7 @@ export const PixelCanvas: React.FC<PixelCanvasProps> = ({
     const isDark = document.documentElement.classList.contains('dark');
 
     // Clear background
-    ctx.fillStyle = isDark ? '#09090B' : '#EAE6DF'; // Dark zinc vs Light beige slate void
+    ctx.fillStyle = isDark ? '#18181B' : '#EAE6DF'; // Dark charcoal grey vs Light beige slate void
     ctx.fillRect(0, 0, canvasWidth, canvasHeight);
 
     const now = Date.now();
@@ -345,10 +345,10 @@ export const PixelCanvas: React.FC<PixelCanvasProps> = ({
 
           if (isTargetedByActiveColor) {
             // Pulse glow effect for target color cells
-            ctx.fillStyle = isDark ? `rgba(217, 119, 6, ${0.25 + pulseFactor * 0.2})` : `rgba(180, 83, 9, ${0.12 + pulseFactor * 0.15})`;
+            ctx.fillStyle = isDark ? `rgba(228, 228, 231, ${0.2 + pulseFactor * 0.15})` : `rgba(180, 83, 9, ${0.12 + pulseFactor * 0.15})`;
             ctx.fillRect(x, y, cellSize, cellSize);
 
-            ctx.strokeStyle = isDark ? `rgba(251, 191, 36, ${0.8 + pulseFactor * 0.2})` : `rgba(180, 83, 9, ${0.6 + pulseFactor * 0.4})`;
+            ctx.strokeStyle = isDark ? `rgba(255, 255, 255, ${0.75 + pulseFactor * 0.25})` : `rgba(180, 83, 9, ${0.6 + pulseFactor * 0.4})`;
             ctx.lineWidth = 2;
             ctx.strokeRect(x + 1, y + 1, cellSize - 2, cellSize - 2);
           } else {
@@ -360,7 +360,7 @@ export const PixelCanvas: React.FC<PixelCanvasProps> = ({
 
           // Draw Number Label
           ctx.fillStyle = isTargetedByActiveColor 
-            ? (isDark ? '#FDE68A' : '#78350F') 
+            ? (isDark ? '#FFFFFF' : '#78350F') 
             : (isDark ? '#E4E4E7' : '#78716C'); // Light grey text in dark mode for high readability!
           ctx.font = `bold ${Math.max(10, Math.floor(cellSize * 0.45))}px sans-serif`;
           ctx.textAlign = 'center';
@@ -376,7 +376,7 @@ export const PixelCanvas: React.FC<PixelCanvasProps> = ({
       ref={containerRef}
       onWheel={handleWheel}
       onContextMenu={(e) => e.preventDefault()}
-      className="relative w-full h-[calc(100vh-14rem)] flex items-center justify-center overflow-hidden bg-[#FAF7F2] dark:bg-zinc-950 cursor-crosshair select-none transition-colors duration-200"
+      className="relative w-full h-[calc(100vh-14rem)] flex items-center justify-center overflow-hidden bg-[#FAF7F2] dark:bg-zinc-900 cursor-crosshair select-none transition-colors duration-200"
     >
       {/* Zoomable & Pannable Container */}
       <div
@@ -384,7 +384,7 @@ export const PixelCanvas: React.FC<PixelCanvasProps> = ({
           transform: `translate(${panOffset.x}px, ${panOffset.y}px) scale(${zoomScale})`,
           transition: isPanning ? 'none' : 'transform 0.05s ease-out',
         }}
-        className="relative flex items-center justify-center p-8 bg-white dark:bg-zinc-900 rounded-3xl border border-stone-200 dark:border-zinc-800 shadow-md"
+        className="relative flex items-center justify-center p-8 bg-white dark:bg-zinc-800 rounded-3xl border border-stone-200 dark:border-zinc-700 shadow-md"
       >
         <canvas
           ref={canvasRef}

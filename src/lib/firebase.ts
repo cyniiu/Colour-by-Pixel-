@@ -16,7 +16,7 @@ export const db = dbId ? getFirestore(app, dbId) : getFirestore(app);
 export const auth = getAuth(app);
 
 // Authentication helper (Anonymous auth for zero-friction auto cloud sync)
-export function ensureAuthenticated(onUserReady: (user: User) => void) {
+export function ensureAuthenticated(onUserReady: (user: User | { uid: string }) => void) {
   return onAuthStateChanged(auth, async (currentUser) => {
     if (currentUser) {
       onUserReady(currentUser);
@@ -24,8 +24,18 @@ export function ensureAuthenticated(onUserReady: (user: User) => void) {
       try {
         const userCred = await signInAnonymously(auth);
         onUserReady(userCred.user);
-      } catch (err) {
-        console.error('Failed anonymous sign in:', err);
+      } catch (err: any) {
+        if (err?.code === 'auth/admin-restricted-operation' || err?.message?.includes('admin-restricted-operation')) {
+          console.info('Firebase anonymous auth is disabled; operating in local device storage mode.');
+        } else {
+          console.warn('Anonymous sign in unavailable, operating in local storage mode:', err);
+        }
+        let localUid = localStorage.getItem('pixel_guest_uid');
+        if (!localUid) {
+          localUid = 'local_' + Math.random().toString(36).substring(2, 11) + Date.now().toString(36);
+          localStorage.setItem('pixel_guest_uid', localUid);
+        }
+        onUserReady({ uid: localUid });
       }
     }
   });
@@ -33,7 +43,7 @@ export function ensureAuthenticated(onUserReady: (user: User) => void) {
 
 // Sync All User Progress to Cloud
 export async function syncProgressToCloud(userId: string, artworkId: string, progress: SavedProgress) {
-  if (!userId) return;
+  if (!userId || !auth.currentUser) return;
   try {
     const ref = doc(db, 'users', userId, 'progress', artworkId);
     await setDoc(ref, {
@@ -49,7 +59,7 @@ export async function syncProgressToCloud(userId: string, artworkId: string, pro
 
 // Fetch All Progress from Cloud
 export async function fetchAllProgressFromCloud(userId: string): Promise<Record<string, SavedProgress>> {
-  if (!userId) return {};
+  if (!userId || !auth.currentUser) return {};
   try {
     const colRef = collection(db, 'users', userId, 'progress');
     const snapshot = await getDocs(colRef);
@@ -68,7 +78,7 @@ export async function fetchAllProgressFromCloud(userId: string): Promise<Record<
 
 // Delete Progress from Cloud
 export async function deleteProgressFromCloud(userId: string, artworkId: string) {
-  if (!userId) return;
+  if (!userId || !auth.currentUser) return;
   try {
     const ref = doc(db, 'users', userId, 'progress', artworkId);
     await deleteDoc(ref);
@@ -79,7 +89,7 @@ export async function deleteProgressFromCloud(userId: string, artworkId: string)
 
 // Save Custom Artwork to Cloud
 export async function saveCustomArtworkToCloud(userId: string, artwork: PixelArtwork) {
-  if (!userId) return;
+  if (!userId || !auth.currentUser) return;
   try {
     const ref = doc(db, 'users', userId, 'customArtworks', artwork.id);
     await setDoc(ref, artwork, { merge: true });
@@ -90,7 +100,7 @@ export async function saveCustomArtworkToCloud(userId: string, artwork: PixelArt
 
 // Fetch Custom Artworks from Cloud
 export async function fetchCustomArtworksFromCloud(userId: string): Promise<PixelArtwork[]> {
-  if (!userId) return [];
+  if (!userId || !auth.currentUser) return [];
   try {
     const colRef = collection(db, 'users', userId, 'customArtworks');
     const snapshot = await getDocs(colRef);
@@ -109,7 +119,7 @@ export async function fetchCustomArtworksFromCloud(userId: string): Promise<Pixe
 
 // Delete Custom Artwork from Cloud
 export async function deleteCustomArtworkFromCloud(userId: string, artworkId: string) {
-  if (!userId) return;
+  if (!userId || !auth.currentUser) return;
   try {
     const ref = doc(db, 'users', userId, 'customArtworks', artworkId);
     await deleteDoc(ref);

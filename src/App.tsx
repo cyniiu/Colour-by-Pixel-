@@ -23,17 +23,24 @@ import { VictoryModal } from './components/VictoryModal';
 import { HelpModal } from './components/HelpModal';
 
 export default function App() {
-  // Dark Mode State (Grey Theme)
+  // Dark Mode State (simple boolean toggle between Light and Dark mode)
   const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
     try {
-      const saved = localStorage.getItem('pixel_dark_mode_v1');
-      return saved ? JSON.parse(saved) : false;
+      const saved = localStorage.getItem('pixel_dark_mode_active');
+      if (saved !== null) {
+        return JSON.parse(saved);
+      }
+      // Check initial system default if first load
+      if (typeof window !== 'undefined' && window.matchMedia) {
+        return window.matchMedia('(prefers-color-scheme: dark)').matches;
+      }
     } catch {
-      return false;
+      // fallback
     }
+    return false;
   });
 
-  // Sync dark class on document root
+  // Sync dark class on document root element for Tailwind CSS
   useEffect(() => {
     if (isDarkMode) {
       document.documentElement.classList.add('dark');
@@ -41,11 +48,15 @@ export default function App() {
       document.documentElement.classList.remove('dark');
     }
     try {
-      localStorage.setItem('pixel_dark_mode_v1', JSON.stringify(isDarkMode));
+      localStorage.setItem('pixel_dark_mode_active', JSON.stringify(isDarkMode));
     } catch {
-      // localStorage fallback
+      // fallback
     }
   }, [isDarkMode]);
+
+  const handleToggleDarkMode = useCallback(() => {
+    setIsDarkMode((prev) => !prev);
+  }, []);
 
   // Navigation & View tab
   const [activeTab, setActiveTab] = useState<'gallery' | 'editor'>('gallery');
@@ -351,7 +362,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#FAF7F2] dark:bg-zinc-950 text-stone-800 dark:text-zinc-100 flex flex-col font-sans selection:bg-stone-700 selection:text-white transition-colors duration-300">
+    <div className="min-h-screen bg-[#FAF7F2] dark:bg-zinc-900 text-stone-800 dark:text-zinc-100 flex flex-col font-sans selection:bg-stone-700 selection:text-white transition-colors duration-300">
       
       {/* Top Header Navbar */}
       <Navbar
@@ -363,7 +374,7 @@ export default function App() {
         isMuted={isMuted}
         setIsMuted={setIsMuted}
         isDarkMode={isDarkMode}
-        setIsDarkMode={setIsDarkMode}
+        onToggleDarkMode={handleToggleDarkMode}
         completedCount={completedTemplatesCount}
         totalTemplatesCount={allArtworks.length}
         activeArtworkTitle={displayedArtwork.title}

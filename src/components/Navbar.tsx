@@ -11,7 +11,7 @@ interface NavbarProps {
   isMuted: boolean;
   setIsMuted: (muted: boolean) => void;
   isDarkMode: boolean;
-  setIsDarkMode: React.Dispatch<React.SetStateAction<boolean>>;
+  onToggleDarkMode: () => void;
   completedCount: number;
   totalTemplatesCount: number;
   activeArtworkTitle?: string;
@@ -28,7 +28,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   isMuted,
   setIsMuted,
   isDarkMode,
-  setIsDarkMode,
+  onToggleDarkMode,
   completedCount,
   totalTemplatesCount,
   activeArtworkTitle,
@@ -38,10 +38,6 @@ export const Navbar: React.FC<NavbarProps> = ({
   const toggleMute = () => {
     const muted = soundManager.toggleMute();
     setIsMuted(muted);
-  };
-
-  const toggleDarkMode = () => {
-    setIsDarkMode((prev) => !prev);
   };
 
   return (
@@ -134,18 +130,20 @@ export const Navbar: React.FC<NavbarProps> = ({
             <span className="hidden lg:inline">Photo to Pixel</span>
           </button>
 
-          {/* Dark Mode Toggle */}
+          {/* Direct 1-Click Dark/Light Mode Toggle */}
           <button
-            onClick={toggleDarkMode}
-            className="p-2 text-stone-500 dark:text-zinc-300 hover:text-stone-900 dark:hover:text-white hover:bg-stone-100 dark:hover:bg-zinc-800 rounded-lg transition-colors"
-            title={isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode (Grey Theme)"}
+            onClick={onToggleDarkMode}
+            className="p-2 text-stone-600 dark:text-zinc-200 hover:text-stone-900 dark:hover:text-white bg-stone-100 hover:bg-stone-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 rounded-xl border border-stone-300 dark:border-zinc-700 transition-all active:scale-95 shadow-xs flex items-center justify-center"
+            title={isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
+            aria-label={isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
           >
             {isDarkMode ? (
-              <Sun className="w-5 h-5 text-amber-300" />
+              <Sun className="w-5 h-5 text-amber-400 animate-in fade-in zoom-in duration-200" />
             ) : (
-              <Moon className="w-5 h-5 text-stone-700" />
+              <Moon className="w-5 h-5 text-stone-700 animate-in fade-in zoom-in duration-200" />
             )}
           </button>
+
 
           {/* Audio Mute Toggle */}
           <button
