@@ -16,7 +16,6 @@ interface NavbarProps {
   completedCount: number;
   totalTemplatesCount: number;
   coins: number;
-  onClaimDailyCoins: () => void;
   activeArtworkTitle?: string;
   artworkProgress?: number;
   isCloudSynced?: boolean;
@@ -36,7 +35,6 @@ export const Navbar: React.FC<NavbarProps> = ({
   completedCount,
   totalTemplatesCount,
   coins,
-  onClaimDailyCoins,
   activeArtworkTitle,
   artworkProgress,
   isCloudSynced = true,
@@ -100,17 +98,14 @@ export const Navbar: React.FC<NavbarProps> = ({
           
           {/* Coin Balance Pill & Challenges Button */}
           <div className="flex items-center gap-1.5">
-            <div className="flex items-center gap-1.5 bg-amber-500/10 dark:bg-amber-950/50 border border-amber-300 dark:border-amber-800 text-amber-800 dark:text-amber-300 px-2.5 py-1 rounded-full text-xs font-extrabold shadow-xs">
+            <button
+              onClick={onOpenChallengesModal}
+              className="flex items-center gap-1.5 bg-amber-500/10 hover:bg-amber-500/20 dark:bg-amber-950/50 dark:hover:bg-amber-900/60 border border-amber-300 dark:border-amber-800 text-amber-800 dark:text-amber-300 px-3 py-1 rounded-full text-xs font-extrabold shadow-xs transition-all hover:scale-[1.02] cursor-pointer"
+              title="Click to view Earn Coins activities & challenges!"
+            >
               <Coins className="w-4 h-4 fill-amber-400 text-amber-600 dark:text-amber-400 animate-pulse" />
               <span>{coins} Coins</span>
-              <button
-                onClick={onClaimDailyCoins}
-                className="ml-0.5 p-0.5 bg-amber-500 hover:bg-amber-600 text-white rounded-full transition-transform active:scale-95"
-                title="Claim +5 Free Daily Bonus Coins!"
-              >
-                <Plus className="w-3 h-3 stroke-[3]" />
-              </button>
-            </div>
+            </button>
 
             <button
               onClick={onOpenChallengesModal}

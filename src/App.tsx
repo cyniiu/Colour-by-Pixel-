@@ -66,20 +66,20 @@ export default function App() {
   // Game Mode ('solo' | 'bot_race')
   const [gameMode, setGameMode] = useState<'solo' | 'bot_race'>('solo');
 
-  // Coins Balance State (Default 20 Coins)
+  // Coins Balance State (Default 5 Coins, max 200 Coins)
   const [coins, setCoins] = useState<number>(() => {
     try {
-      const saved = localStorage.getItem('pixel_coins_v1');
-      return saved !== null ? JSON.parse(saved) : 20;
+      const saved = localStorage.getItem('pixel_coins_v2');
+      return saved !== null ? Math.min(200, JSON.parse(saved)) : 5;
     } catch {
-      return 20;
+      return 5;
     }
   });
 
-  // Save coins to localStorage
+  // Save coins to localStorage whenever coins balance updates
   useEffect(() => {
     try {
-      localStorage.setItem('pixel_coins_v1', JSON.stringify(coins));
+      localStorage.setItem('pixel_coins_v2', JSON.stringify(coins));
     } catch {}
   }, [coins]);
 
@@ -106,17 +106,11 @@ export default function App() {
   // Unlock Artwork with 5 Coins
   const handleUnlockArtwork = useCallback((artworkId: string) => {
     if (coins >= 5) {
-      setCoins((prev) => prev - 5);
+      setCoins((prev) => Math.max(0, prev - 5));
       setUnlockedArtworkIds((prev) => Array.from(new Set([...prev, artworkId])));
       soundManager.playVictorySound();
     }
   }, [coins]);
-
-  // Claim Daily Bonus Coins (+5 Coins)
-  const handleClaimDailyCoins = useCallback(() => {
-    setCoins((prev) => prev + 5);
-    soundManager.playColorCompleteSound();
-  }, []);
 
   // Firebase Auth User ID for Cloud Sync
   const [userId, setUserId] = useState<string | null>(null);
@@ -231,9 +225,9 @@ export default function App() {
   const [isVictoryModalOpen, setIsVictoryModalOpen] = useState(false);
   const [isChallengesModalOpen, setIsChallengesModalOpen] = useState(false);
 
-  // Reward coins from challenges
+  // Reward coins from challenges (max 200)
   const handleRewardCoins = useCallback((amount: number) => {
-    setCoins((prev) => prev + amount);
+    setCoins((prev) => Math.min(200, prev + amount));
     soundManager.playVictorySound();
   }, []);
 
@@ -356,7 +350,7 @@ export default function App() {
 
   // Bot Race Victory Handler (+10 Coins Bonus)
   const handleWinBotRace = useCallback(() => {
-    setCoins((prev) => prev + 10);
+    setCoins((prev) => Math.min(200, prev + 10));
     setVictoryDetails({ isBotWin: true, coinsEarned: 10 });
     handleCompleteArtwork(activeArtwork.id);
     setIsVictoryModalOpen(true);
@@ -554,7 +548,6 @@ export default function App() {
         artworkProgress={overallProgress}
         isCloudSynced={Boolean(userId)}
         coins={coins}
-        onClaimDailyCoins={handleClaimDailyCoins}
       />
 
       {/* Main Content Body */}
@@ -567,7 +560,6 @@ export default function App() {
             unlockedArtworkIds={unlockedArtworkIds}
             onSelectArtwork={handleSelectArtwork}
             onUnlockArtwork={handleUnlockArtwork}
-            onClaimDailyCoins={handleClaimDailyCoins}
             onOpenAiModal={() => setIsAiModalOpen(true)}
             onOpenUploadModal={() => setIsUploadModalOpen(true)}
             onDeleteCustomArtwork={handleDeleteCustomArtwork}
@@ -591,7 +583,7 @@ export default function App() {
               gameMode={gameMode}
               onWinBotRace={handleWinBotRace}
               onCompleteArtwork={() => {
-                setCoins((prev) => prev + 5);
+                setCoins((prev) => Math.min(200, prev + 5));
                 setVictoryDetails({ isBotWin: false, coinsEarned: 5 });
                 setIsVictoryModalOpen(true);
               }}
