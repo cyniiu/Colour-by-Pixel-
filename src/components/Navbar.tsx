@@ -1,5 +1,5 @@
 import React from 'react';
-import { Palette, Sparkles, Image as ImageIcon, Volume2, VolumeX, HelpCircle, LayoutGrid, CloudCheck, Sun, Moon } from 'lucide-react';
+import { Palette, Sparkles, Image as ImageIcon, Volume2, VolumeX, HelpCircle, LayoutGrid, CloudCheck, Sun, Moon, Coins, Plus, Target } from 'lucide-react';
 import { soundManager } from '../utils/sound';
 
 interface NavbarProps {
@@ -8,12 +8,15 @@ interface NavbarProps {
   onOpenAiModal: () => void;
   onOpenUploadModal: () => void;
   onOpenHelpModal: () => void;
+  onOpenChallengesModal: () => void;
   isMuted: boolean;
   setIsMuted: (muted: boolean) => void;
   isDarkMode: boolean;
   onToggleDarkMode: () => void;
   completedCount: number;
   totalTemplatesCount: number;
+  coins: number;
+  onClaimDailyCoins: () => void;
   activeArtworkTitle?: string;
   artworkProgress?: number;
   isCloudSynced?: boolean;
@@ -25,12 +28,15 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenAiModal,
   onOpenUploadModal,
   onOpenHelpModal,
+  onOpenChallengesModal,
   isMuted,
   setIsMuted,
   isDarkMode,
   onToggleDarkMode,
   completedCount,
   totalTemplatesCount,
+  coins,
+  onClaimDailyCoins,
   activeArtworkTitle,
   artworkProgress,
   isCloudSynced = true,
@@ -91,6 +97,31 @@ export const Navbar: React.FC<NavbarProps> = ({
 
         {/* Action Buttons & Tabs */}
         <div className="flex items-center gap-2 sm:gap-3">
+          
+          {/* Coin Balance Pill & Challenges Button */}
+          <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1.5 bg-amber-500/10 dark:bg-amber-950/50 border border-amber-300 dark:border-amber-800 text-amber-800 dark:text-amber-300 px-2.5 py-1 rounded-full text-xs font-extrabold shadow-xs">
+              <Coins className="w-4 h-4 fill-amber-400 text-amber-600 dark:text-amber-400 animate-pulse" />
+              <span>{coins} Coins</span>
+              <button
+                onClick={onClaimDailyCoins}
+                className="ml-0.5 p-0.5 bg-amber-500 hover:bg-amber-600 text-white rounded-full transition-transform active:scale-95"
+                title="Claim +5 Free Daily Bonus Coins!"
+              >
+                <Plus className="w-3 h-3 stroke-[3]" />
+              </button>
+            </div>
+
+            <button
+              onClick={onOpenChallengesModal}
+              className="flex items-center gap-1 px-2.5 py-1 bg-amber-500 hover:bg-amber-600 text-stone-900 font-extrabold text-xs rounded-full shadow-xs transition-all hover:scale-[1.02] cursor-pointer"
+              title="Play Daily Wordle & Extra Challenges for Coins!"
+            >
+              <Target className="w-3.5 h-3.5 stroke-[2.5]" />
+              <span className="hidden sm:inline">Earn Coins</span>
+            </button>
+          </div>
+
           {/* Main Navigation Tabs */}
           <button
             onClick={() => setActiveTab('gallery')}

@@ -1,6 +1,7 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { PixelArtwork, ColorPaletteItem, ToolType } from '../types';
 import { soundManager } from '../utils/sound';
+import { Bot, Swords, User, Timer, Trophy, RotateCcw, AlertTriangle, Sparkles } from 'lucide-react';
 
 interface PixelCanvasProps {
   artwork: PixelArtwork;
@@ -13,6 +14,9 @@ interface PixelCanvasProps {
   zoomScale: number;
   setZoomScale: React.Dispatch<React.SetStateAction<number>>;
   onCompleteArtwork: () => void;
+  gameMode?: 'solo' | 'bot_race';
+  setGameMode?: (mode: 'solo' | 'bot_race') => void;
+  onWinBotRace?: (durationSeconds: number) => void;
 }
 
 export const PixelCanvas: React.FC<PixelCanvasProps> = ({
@@ -26,6 +30,9 @@ export const PixelCanvas: React.FC<PixelCanvasProps> = ({
   zoomScale,
   setZoomScale,
   onCompleteArtwork,
+  gameMode = 'solo',
+  setGameMode,
+  onWinBotRace,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -39,8 +46,14 @@ export const PixelCanvas: React.FC<PixelCanvasProps> = ({
   const [isPainting, setIsPainting] = useState<boolean>(false);
   const [lastPaintedCell, setLastPaintedCell] = useState<{ r: number; c: number } | null>(null);
 
+  // Bot Race State
+  const [raceTimeSeconds, setRaceTimeSeconds] = useState<number>(0);
+  const [raceStatus, setRaceStatus] = useState<'racing' | 'player_won' | 'bot_won'>('racing');
+  const [botWarningToast, setBotWarningToast] = useState<string | null>(null);
+
   const width = artwork.width;
   const height = artwork.height;
+  const colSplitIndex = Math.floor(width / 2); // 50/50 horizontal split
   const paletteMap = useRef<Map<number, string>>(new Map());
 
   // Update palette map
@@ -50,14 +63,110 @@ export const PixelCanvas: React.FC<PixelCanvasProps> = ({
     paletteMap.current = map;
   }, [artwork.palette]);
 
-  // Reset pan and zoom on artwork load
+  // Reset pan, zoom, and race state on artwork load or mode change
   useEffect(() => {
     setPanOffset({ x: 0, y: 0 });
     setZoomScale(1.0);
-  }, [artwork.id, setZoomScale]);
+    setRaceTimeSeconds(0);
+    setRaceStatus('racing');
+    setBotWarningToast(null);
+  }, [artwork.id, gameMode, setZoomScale]);
 
-  // Check if color or entire artwork is complete
+  // Calculate Bot Race Stats (Player's side vs Bot's side)
+  let playerTotalTarget = 0;
+  let playerPaintedCount = 0;
+  let botTotalTarget = 0;
+  let botPaintedCount = 0;
+
+  for (let r = 0; r < height; r++) {
+    for (let c = 0; c < width; c++) {
+      const target = artwork.grid[r][c];
+      if (target > 0) {
+        if (c < colSplitIndex) {
+          playerTotalTarget++;
+          if (paintedGrid[r]?.[c] === target) playerPaintedCount++;
+        } else {
+          botTotalTarget++;
+          if (paintedGrid[r]?.[c] === target) botPaintedCount++;
+        }
+      }
+    }
+  }
+
+  const playerPercent = playerTotalTarget > 0 ? Math.round((playerPaintedCount / playerTotalTarget) * 100) : 0;
+  const botPercent = botTotalTarget > 0 ? Math.round((botPaintedCount / botTotalTarget) * 100) : 0;
+
+  // Race Timer Interval
+  useEffect(() => {
+    if (gameMode !== 'bot_race' || raceStatus !== 'racing') return;
+
+    const timer = setInterval(() => {
+      setRaceTimeSeconds(prev => prev + 1);
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [gameMode, raceStatus]);
+
+  // Bot Engine Interval (Must take AT LEAST 1 min 30s = 90,000ms to complete its half)
+  useEffect(() => {
+    if (gameMode !== 'bot_race' || raceStatus !== 'racing') return;
+
+    // 90 seconds = 90,000 ms. Interval per cell = 90000 / botTotalTarget (min 300ms)
+    const botIntervalMs = Math.max(300, Math.ceil((90 * 1000) / Math.max(botTotalTarget, 1)));
+
+    const botInterval = setInterval(() => {
+      setPaintedGrid(prev => {
+        // Find unpainted cells on Bot's side (c >= colSplitIndex)
+        const unpaintedCells: { r: number; c: number; colorId: number }[] = [];
+        for (let r = 0; r < height; r++) {
+          for (let c = colSplitIndex; c < width; c++) {
+            const target = artwork.grid[r][c];
+            if (target > 0 && prev[r][c] !== target) {
+              unpaintedCells.push({ r, c, colorId: target });
+            }
+          }
+        }
+
+        if (unpaintedCells.length === 0) {
+          // Bot has finished its side!
+          setRaceStatus('bot_won');
+          soundManager.playTapSound(0.5);
+          return prev;
+        }
+
+        // Pick one cell to paint
+        const cellToPaint = unpaintedCells[Math.floor(Math.random() * unpaintedCells.length)];
+        const next = prev.map(row => [...row]);
+        next[cellToPaint.r][cellToPaint.c] = cellToPaint.colorId;
+
+        // Check if this was the last pixel for the bot
+        if (unpaintedCells.length === 1) {
+          setRaceStatus('bot_won');
+          soundManager.playTapSound(0.5);
+        }
+
+        return next;
+      });
+    }, botIntervalMs);
+
+    return () => clearInterval(botInterval);
+  }, [gameMode, raceStatus, height, width, colSplitIndex, artwork.grid, botTotalTarget, setPaintedGrid]);
+
+  // Check Player Win Condition in Bot Race
+  useEffect(() => {
+    if (gameMode === 'bot_race' && raceStatus === 'racing' && playerTotalTarget > 0 && playerPaintedCount === playerTotalTarget) {
+      setRaceStatus('player_won');
+      soundManager.playVictorySound();
+      if (onWinBotRace) {
+        onWinBotRace(raceTimeSeconds);
+      }
+    }
+  }, [gameMode, raceStatus, playerTotalTarget, playerPaintedCount, raceTimeSeconds, onWinBotRace]);
+
+  // Check Solo Completion
   const checkCompletion = useCallback((gridToCheck: number[][]) => {
+    if (gameMode === 'bot_race') return; // Handled separately in Bot Race logic above
+
     let totalUnpainted = 0;
     let selectedColorUnpainted = 0;
 
@@ -99,11 +208,22 @@ export const PixelCanvas: React.FC<PixelCanvasProps> = ({
       soundManager.playVictorySound();
       onCompleteArtwork();
     }
-  }, [artwork.grid, artwork.palette, height, width, selectedColorId, setSelectedColorId, onCompleteArtwork]);
+  }, [artwork.grid, artwork.palette, height, width, selectedColorId, setSelectedColorId, onCompleteArtwork, gameMode]);
 
   // Single Cell Paint Action
   const paintCell = useCallback((r: number, c: number) => {
     if (r < 0 || r >= height || c < 0 || c >= width) return;
+
+    // Check Bot Race restrictions
+    if (gameMode === 'bot_race') {
+      if (c >= colSplitIndex) {
+        setBotWarningToast("🤖 That's the Bot's side! Focus on your half (Left)!");
+        soundManager.playTapSound(0.5);
+        setTimeout(() => setBotWarningToast(null), 2500);
+        return;
+      }
+    }
+
     const targetColor = artwork.grid[r][c];
     if (targetColor === 0) return; // Background non-paintable cell
 
@@ -111,7 +231,6 @@ export const PixelCanvas: React.FC<PixelCanvasProps> = ({
       if (targetColor > 0) {
         soundManager.playTapSound();
         setSelectedColorId(targetColor);
-        // Switch back to brush tool after picking
       }
       return;
     }
@@ -130,7 +249,6 @@ export const PixelCanvas: React.FC<PixelCanvasProps> = ({
 
     // Painting with active color or bucket
     if (selectedTool === 'brush') {
-      // Check if user clicked correct color
       if (selectedColorId === targetColor) {
         if (paintedGrid[r][c] !== selectedColorId) {
           soundManager.playTapSound();
@@ -143,11 +261,9 @@ export const PixelCanvas: React.FC<PixelCanvasProps> = ({
           });
         }
       } else {
-        // Soft error tap sound
         soundManager.playTapSound(0.6);
       }
     } else if (selectedTool === 'bucket') {
-      // Flood fill contiguous matching target cells
       if (selectedColorId !== targetColor) {
         soundManager.playTapSound(0.6);
         return;
@@ -167,11 +283,14 @@ export const PixelCanvas: React.FC<PixelCanvasProps> = ({
           visited.add(key);
 
           if (cr < 0 || cr >= height || cc < 0 || cc >= width) continue;
+
+          // Restrict bucket fill to player half in bot race mode
+          if (gameMode === 'bot_race' && cc >= colSplitIndex) continue;
+
           if (artwork.grid[cr][cc] !== targetToFill) continue;
 
           next[cr][cc] = targetToFill;
 
-          // 4-directional neighbors
           queue.push([cr + 1, cc], [cr - 1, cc], [cr, cc + 1], [cr, cc - 1]);
         }
 
@@ -180,9 +299,9 @@ export const PixelCanvas: React.FC<PixelCanvasProps> = ({
         return next;
       });
     }
-  }, [height, width, artwork.grid, selectedTool, selectedColorId, paintedGrid, setPaintedGrid, onRecordHistory, checkCompletion]);
+  }, [height, width, artwork.grid, selectedTool, selectedColorId, paintedGrid, setPaintedGrid, onRecordHistory, checkCompletion, gameMode, colSplitIndex]);
 
-  // Magic Wand Tool Action (auto fills up to 10 matching pixels for active color)
+  // Magic Wand Tool Action
   const applyMagicWand = useCallback(() => {
     soundManager.playMagicSound();
     setPaintedGrid(prev => {
@@ -190,10 +309,12 @@ export const PixelCanvas: React.FC<PixelCanvasProps> = ({
       let count = 0;
       for (let r = 0; r < height; r++) {
         for (let c = 0; c < width; c++) {
+          if (gameMode === 'bot_race' && c >= colSplitIndex) continue; // Skip bot side
+
           if (artwork.grid[r][c] === selectedColorId && next[r][c] !== selectedColorId) {
             next[r][c] = selectedColorId;
             count++;
-            if (count >= 12) break; // Paint up to 12 at once
+            if (count >= 12) break;
           }
         }
         if (count >= 12) break;
@@ -202,9 +323,8 @@ export const PixelCanvas: React.FC<PixelCanvasProps> = ({
       checkCompletion(next);
       return next;
     });
-  }, [height, width, artwork.grid, selectedColorId, setPaintedGrid, onRecordHistory, checkCompletion]);
+  }, [height, width, artwork.grid, selectedColorId, setPaintedGrid, onRecordHistory, checkCompletion, gameMode, colSplitIndex]);
 
-  // Expose magic wand trigger
   useEffect(() => {
     if (selectedTool === 'magic_wand') {
       applyMagicWand();
@@ -229,10 +349,9 @@ export const PixelCanvas: React.FC<PixelCanvasProps> = ({
     return null;
   };
 
-  // Mouse Handlers for Painting & Panning
+  // Mouse Handlers
   const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
     if (e.button === 1 || e.button === 2 || e.shiftKey) {
-      // Middle or Right Click / Shift = Pan
       setIsPanning(true);
       setPanStart({ x: e.clientX - panOffset.x, y: e.clientY - panOffset.y });
       return;
@@ -272,7 +391,6 @@ export const PixelCanvas: React.FC<PixelCanvasProps> = ({
     setLastPaintedCell(null);
   };
 
-  // Mouse Wheel Zoom
   const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
     e.preventDefault();
     const zoomFactor = e.deltaY < 0 ? 1.15 : 0.85;
@@ -286,7 +404,6 @@ export const PixelCanvas: React.FC<PixelCanvasProps> = ({
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // Set high resolution canvas dimensions
     const maxDim = Math.max(width, height);
     const baseCellSize = maxDim <= 16 ? 32 : maxDim <= 24 ? 24 : maxDim <= 36 ? 18 : maxDim <= 48 ? 14 : 11;
     const canvasWidth = width * baseCellSize;
@@ -301,12 +418,11 @@ export const PixelCanvas: React.FC<PixelCanvasProps> = ({
     const isDark = document.documentElement.classList.contains('dark');
     const isCustomImage = artwork.category === 'Custom Upload';
 
-    // Clear background (Light grey in dark mode, white in light mode for standard art; dark/beige for custom uploads)
     ctx.fillStyle = !isCustomImage ? (isDark ? '#D4D4D8' : '#FFFFFF') : (isDark ? '#18181B' : '#EAE6DF');
     ctx.fillRect(0, 0, canvasWidth, canvasHeight);
 
     const now = Date.now();
-    const pulseFactor = (Math.sin(now / 200) + 1) / 2; // 0..1 smooth pulse
+    const pulseFactor = (Math.sin(now / 200) + 1) / 2;
 
     for (let r = 0; r < height; r++) {
       for (let c = 0; c < width; c++) {
@@ -318,10 +434,8 @@ export const PixelCanvas: React.FC<PixelCanvasProps> = ({
 
         if (targetColorId === 0) {
           if (!isCustomImage) {
-            // Light grey in dark mode, white in light mode for standard artwork empty cells
             ctx.fillStyle = isDark ? '#D4D4D8' : '#FFFFFF';
           } else {
-            // Checkerboard background for custom image transparent cells
             const isEven = (r + c) % 2 === 0;
             ctx.fillStyle = isEven ? (isDark ? '#18181B' : '#FFFFFF') : (isDark ? '#27272A' : '#F5F5F5');
           }
@@ -332,25 +446,20 @@ export const PixelCanvas: React.FC<PixelCanvasProps> = ({
         const isPainted = paintedColorId === targetColorId;
 
         if (isPainted) {
-          // Render painted solid color
           const hex = paletteMap.current.get(paintedColorId) || '#A8A29E';
           ctx.fillStyle = hex;
           ctx.fillRect(x, y, cellSize, cellSize);
 
-          // Subtle inner border for pixel depth
           ctx.strokeStyle = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.1)';
           ctx.lineWidth = 1;
           ctx.strokeRect(x, y, cellSize, cellSize);
         } else {
-          // Unpainted cell background
-          ctx.fillStyle = isDark ? '#27272A' : '#FFFFFF'; // Dark grey cell vs white unpainted cell
+          ctx.fillStyle = isDark ? '#27272A' : '#FFFFFF';
           ctx.fillRect(x, y, cellSize, cellSize);
 
-          // Check if cell matches active selected color
           const isTargetedByActiveColor = targetColorId === selectedColorId;
 
           if (isTargetedByActiveColor) {
-            // Pulse glow effect for target color cells
             ctx.fillStyle = isDark ? `rgba(228, 228, 231, ${0.2 + pulseFactor * 0.15})` : `rgba(180, 83, 9, ${0.12 + pulseFactor * 0.15})`;
             ctx.fillRect(x, y, cellSize, cellSize);
 
@@ -358,16 +467,14 @@ export const PixelCanvas: React.FC<PixelCanvasProps> = ({
             ctx.lineWidth = 2;
             ctx.strokeRect(x + 1, y + 1, cellSize - 2, cellSize - 2);
           } else {
-            // Subtle cell grid border
             ctx.strokeStyle = isDark ? '#3F3F46' : '#D6D3D1';
             ctx.lineWidth = 0.5;
             ctx.strokeRect(x, y, cellSize, cellSize);
           }
 
-          // Draw Number Label
           ctx.fillStyle = isTargetedByActiveColor 
             ? (isDark ? '#FFFFFF' : '#78350F') 
-            : (isDark ? '#E4E4E7' : '#78716C'); // Light grey text in dark mode for high readability!
+            : (isDark ? '#E4E4E7' : '#78716C');
           ctx.font = `bold ${Math.max(10, Math.floor(cellSize * 0.45))}px sans-serif`;
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
@@ -375,7 +482,32 @@ export const PixelCanvas: React.FC<PixelCanvasProps> = ({
         }
       }
     }
-  }, [artwork.grid, paintedGrid, width, height, selectedColorId, zoomScale]);
+
+    // Draw Bot Race Split Divider Line (at colSplitIndex)
+    if (gameMode === 'bot_race') {
+      const splitX = colSplitIndex * cellSize;
+      
+      // Vertical Glowing Divider
+      ctx.save();
+      ctx.beginPath();
+      ctx.setLineDash([8, 6]);
+      ctx.moveTo(splitX, 0);
+      ctx.lineTo(splitX, canvasHeight);
+      ctx.strokeStyle = '#6366F1'; // Vibrant Indigo
+      ctx.lineWidth = 4;
+      ctx.shadowColor = '#818CF8';
+      ctx.shadowBlur = 8;
+      ctx.stroke();
+      ctx.restore();
+    }
+  }, [artwork.grid, paintedGrid, width, height, selectedColorId, zoomScale, gameMode, colSplitIndex]);
+
+  // Format MM:SS for timer
+  const formatTime = (seconds: number) => {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  };
 
   return (
     <div
@@ -384,6 +516,109 @@ export const PixelCanvas: React.FC<PixelCanvasProps> = ({
       onContextMenu={(e) => e.preventDefault()}
       className="relative w-full h-[calc(100vh-14rem)] flex items-center justify-center overflow-hidden bg-white dark:bg-[#7F7C79] cursor-crosshair select-none transition-colors duration-200"
     >
+      
+      {/* Bot Race Top HUD Scoreboard */}
+      {gameMode === 'bot_race' && (
+        <div className="absolute top-4 z-20 max-w-xl w-[92%] bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md p-3 rounded-2xl border border-indigo-200 dark:border-indigo-900 shadow-lg space-y-2 text-xs">
+          
+          <div className="flex items-center justify-between gap-2 border-b border-stone-200 dark:border-zinc-800 pb-2">
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 rounded-lg bg-indigo-500 text-white font-extrabold flex items-center gap-1">
+                <Swords className="w-4 h-4" />
+              </div>
+              <div>
+                <div className="font-extrabold text-stone-900 dark:text-zinc-100 flex items-center gap-1.5">
+                  <span>Vs. Bot Artwork Race</span>
+                  <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-800 dark:bg-indigo-950 dark:text-indigo-300">
+                    50/50 Split
+                  </span>
+                </div>
+                <div className="text-[11px] text-stone-500 dark:text-zinc-400">
+                  Finish your half (Left) before Bot completes its half (Right)!
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1 font-mono font-extrabold text-stone-800 dark:text-zinc-200 bg-stone-100 dark:bg-zinc-800 px-2.5 py-1 rounded-lg border border-stone-200 dark:border-zinc-700">
+                <Timer className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+                <span>{formatTime(raceTimeSeconds)}</span>
+              </div>
+
+              {setGameMode && (
+                <button
+                  onClick={() => setGameMode('solo')}
+                  className="px-2.5 py-1 bg-stone-100 hover:bg-stone-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-stone-700 dark:text-zinc-300 font-semibold rounded-lg transition-colors"
+                >
+                  Exit Race
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Progress Bars */}
+          <div className="grid grid-cols-2 gap-3 pt-0.5">
+            {/* Player Side */}
+            <div className="space-y-1">
+              <div className="flex items-center justify-between font-bold text-stone-800 dark:text-zinc-200">
+                <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
+                  <User className="w-3.5 h-3.5" />
+                  <span>You (Left)</span>
+                </span>
+                <span className="font-mono">{playerPercent}%</span>
+              </div>
+              <div className="w-full bg-stone-200 dark:bg-zinc-800 h-2 rounded-full overflow-hidden">
+                <div 
+                  className="bg-emerald-500 h-full transition-all duration-300" 
+                  style={{ width: `${playerPercent}%` }} 
+                />
+              </div>
+            </div>
+
+            {/* Bot Side */}
+            <div className="space-y-1">
+              <div className="flex items-center justify-between font-bold text-stone-800 dark:text-zinc-200">
+                <span className="flex items-center gap-1 text-indigo-600 dark:text-indigo-400">
+                  <Bot className="w-3.5 h-3.5" />
+                  <span>Bot (Right)</span>
+                </span>
+                <span className="font-mono">{botPercent}%</span>
+              </div>
+              <div className="w-full bg-stone-200 dark:bg-zinc-800 h-2 rounded-full overflow-hidden">
+                <div 
+                  className="bg-indigo-500 h-full transition-all duration-300" 
+                  style={{ width: `${botPercent}%` }} 
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Race Banner Outcome */}
+          {raceStatus === 'player_won' && (
+            <div className="p-2 bg-emerald-500 text-white font-extrabold rounded-xl text-center flex items-center justify-center gap-2 animate-bounce shadow-md">
+              <Trophy className="w-4 h-4" />
+              <span>YOU BEAT THE BOT! +10 BONUS COINS EARNED! 🎉</span>
+            </div>
+          )}
+
+          {raceStatus === 'bot_won' && (
+            <div className="p-2 bg-indigo-600 text-white font-extrabold rounded-xl text-center flex items-center justify-center gap-2 shadow-md">
+              <Bot className="w-4 h-4" />
+              <span>Bot completed its half first! You can still finish your half!</span>
+            </div>
+          )}
+
+        </div>
+      )}
+
+      {/* Bot Warning Toast */}
+      {botWarningToast && (
+        <div className="absolute top-20 z-30 bg-rose-600 text-white font-bold text-xs px-4 py-2 rounded-full shadow-xl flex items-center gap-2 animate-bounce">
+          <AlertTriangle className="w-4 h-4" />
+          <span>{botWarningToast}</span>
+        </div>
+      )}
+
       {/* Zoomable & Pannable Container */}
       <div
         style={{
@@ -403,7 +638,7 @@ export const PixelCanvas: React.FC<PixelCanvasProps> = ({
       </div>
 
       {/* Floating Canvas Hint Bar */}
-      <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-stone-300 dark:border-zinc-700 text-[11px] text-stone-700 dark:text-zinc-200 font-semibold flex items-center gap-3 shadow-xs">
+      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-stone-300 dark:border-zinc-700 text-[11px] text-stone-700 dark:text-zinc-200 font-semibold flex items-center gap-3 shadow-xs">
         <span>Left Click / Drag: Paint</span>
         <span className="text-stone-300 dark:text-zinc-700">•</span>
         <span>Scroll: Zoom ({Math.round(zoomScale * 100)}%)</span>
@@ -413,3 +648,4 @@ export const PixelCanvas: React.FC<PixelCanvasProps> = ({
     </div>
   );
 };
+

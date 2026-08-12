@@ -22,6 +22,7 @@ import { AiGeneratorModal } from './components/AiGeneratorModal';
 import { ImageConverterModal } from './components/ImageConverterModal';
 import { VictoryModal } from './components/VictoryModal';
 import { HelpModal } from './components/HelpModal';
+import { ChallengesModal } from './components/ChallengesModal';
 
 export default function App() {
   // Dark Mode State (simple boolean toggle between Light and Dark mode)
@@ -61,6 +62,61 @@ export default function App() {
 
   // Navigation & View tab
   const [activeTab, setActiveTab] = useState<'gallery' | 'editor'>('gallery');
+
+  // Game Mode ('solo' | 'bot_race')
+  const [gameMode, setGameMode] = useState<'solo' | 'bot_race'>('solo');
+
+  // Coins Balance State (Default 20 Coins)
+  const [coins, setCoins] = useState<number>(() => {
+    try {
+      const saved = localStorage.getItem('pixel_coins_v1');
+      return saved !== null ? JSON.parse(saved) : 20;
+    } catch {
+      return 20;
+    }
+  });
+
+  // Save coins to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem('pixel_coins_v1', JSON.stringify(coins));
+    } catch {}
+  }, [coins]);
+
+  // Unlocked Artwork IDs State (First 10 template artworks are free by default)
+  const [unlockedArtworkIds, setUnlockedArtworkIds] = useState<string[]>(() => {
+    const defaultFreeIds = TEMPLATE_ARTWORKS.slice(0, 10).map((a) => a.id);
+    try {
+      const saved = localStorage.getItem('pixel_unlocked_artworks_v1');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return Array.from(new Set([...defaultFreeIds, ...parsed]));
+      }
+    } catch {}
+    return defaultFreeIds;
+  });
+
+  // Save unlocked artwork IDs to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem('pixel_unlocked_artworks_v1', JSON.stringify(unlockedArtworkIds));
+    } catch {}
+  }, [unlockedArtworkIds]);
+
+  // Unlock Artwork with 5 Coins
+  const handleUnlockArtwork = useCallback((artworkId: string) => {
+    if (coins >= 5) {
+      setCoins((prev) => prev - 5);
+      setUnlockedArtworkIds((prev) => Array.from(new Set([...prev, artworkId])));
+      soundManager.playVictorySound();
+    }
+  }, [coins]);
+
+  // Claim Daily Bonus Coins (+5 Coins)
+  const handleClaimDailyCoins = useCallback(() => {
+    setCoins((prev) => prev + 5);
+    soundManager.playColorCompleteSound();
+  }, []);
 
   // Firebase Auth User ID for Cloud Sync
   const [userId, setUserId] = useState<string | null>(null);
@@ -173,6 +229,13 @@ export default function App() {
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
   const [isVictoryModalOpen, setIsVictoryModalOpen] = useState(false);
+  const [isChallengesModalOpen, setIsChallengesModalOpen] = useState(false);
+
+  // Reward coins from challenges
+  const handleRewardCoins = useCallback((amount: number) => {
+    setCoins((prev) => prev + amount);
+    soundManager.playVictorySound();
+  }, []);
 
   // Save custom artworks to localStorage
   useEffect(() => {
@@ -230,13 +293,23 @@ export default function App() {
     }
   }, [paintedGrid, activeArtwork, userId]);
 
+  // Victory Modal Details
+  const [victoryDetails, setVictoryDetails] = useState<{ isBotWin: boolean; coinsEarned: number }>({
+    isBotWin: false,
+    coinsEarned: 5,
+  });
+
   // Open & Select Artwork for painting
-  const handleSelectArtwork = (artwork: PixelArtwork) => {
+  const handleSelectArtwork = (artwork: PixelArtwork, mode: 'solo' | 'bot_race' = 'solo') => {
     setActiveArtwork(artwork);
+    setGameMode(mode);
     setActiveThemeId('original');
     const existing = savedProgressMap[artwork.id];
 
-    if (existing?.isCompleted) {
+    if (mode === 'bot_race') {
+      // Clean slate for Bot Race
+      setPaintedGrid(Array.from({ length: artwork.height }, () => Array(artwork.width).fill(0)));
+    } else if (existing?.isCompleted) {
       setPaintedGrid(artwork.grid.map((row) => [...row]));
     } else if (existing?.paintedGrid) {
       setPaintedGrid(existing.paintedGrid);
@@ -280,6 +353,14 @@ export default function App() {
       syncProgressToCloud(userId, artworkId, progressItem);
     }
   }, [allArtworks, savedProgressMap, activeArtwork, userId]);
+
+  // Bot Race Victory Handler (+10 Coins Bonus)
+  const handleWinBotRace = useCallback(() => {
+    setCoins((prev) => prev + 10);
+    setVictoryDetails({ isBotWin: true, coinsEarned: 10 });
+    handleCompleteArtwork(activeArtwork.id);
+    setIsVictoryModalOpen(true);
+  }, [activeArtwork.id, handleCompleteArtwork]);
 
   // Complete ALL artworks
   const handleCompleteAllArtworks = useCallback(() => {
@@ -462,6 +543,7 @@ export default function App() {
         onOpenAiModal={() => setIsAiModalOpen(true)}
         onOpenUploadModal={() => setIsUploadModalOpen(true)}
         onOpenHelpModal={() => setIsHelpModalOpen(true)}
+        onOpenChallengesModal={() => setIsChallengesModalOpen(true)}
         isMuted={isMuted}
         setIsMuted={setIsMuted}
         isDarkMode={isDarkMode}
@@ -471,6 +553,8 @@ export default function App() {
         activeArtworkTitle={displayedArtwork.title}
         artworkProgress={overallProgress}
         isCloudSynced={Boolean(userId)}
+        coins={coins}
+        onClaimDailyCoins={handleClaimDailyCoins}
       />
 
       {/* Main Content Body */}
@@ -479,7 +563,11 @@ export default function App() {
           <GalleryView
             artworks={allArtworks}
             savedProgressMap={savedProgressMap}
+            coins={coins}
+            unlockedArtworkIds={unlockedArtworkIds}
             onSelectArtwork={handleSelectArtwork}
+            onUnlockArtwork={handleUnlockArtwork}
+            onClaimDailyCoins={handleClaimDailyCoins}
             onOpenAiModal={() => setIsAiModalOpen(true)}
             onOpenUploadModal={() => setIsUploadModalOpen(true)}
             onDeleteCustomArtwork={handleDeleteCustomArtwork}
@@ -500,7 +588,13 @@ export default function App() {
               onRecordHistory={handleRecordHistory}
               zoomScale={zoomScale}
               setZoomScale={setZoomScale}
-              onCompleteArtwork={() => setIsVictoryModalOpen(true)}
+              gameMode={gameMode}
+              onWinBotRace={handleWinBotRace}
+              onCompleteArtwork={() => {
+                setCoins((prev) => prev + 5);
+                setVictoryDetails({ isBotWin: false, coinsEarned: 5 });
+                setIsVictoryModalOpen(true);
+              }}
             />
 
             {/* Bottom Palette & Controls Bar */}
@@ -545,11 +639,22 @@ export default function App() {
       <VictoryModal
         isOpen={isVictoryModalOpen}
         artwork={displayedArtwork}
+        isBotWin={victoryDetails.isBotWin}
+        coinsEarned={victoryDetails.coinsEarned}
         onNextArtwork={handleNextArtwork}
         onBackToGallery={() => {
           setIsVictoryModalOpen(false);
           setActiveTab('gallery');
         }}
+      />
+
+      <ChallengesModal
+        isOpen={isChallengesModalOpen}
+        onClose={() => setIsChallengesModalOpen(false)}
+        coins={coins}
+        onRewardCoins={handleRewardCoins}
+        onOpenAiModal={() => setIsAiModalOpen(true)}
+        onOpenUploadModal={() => setIsUploadModalOpen(true)}
       />
 
     </div>

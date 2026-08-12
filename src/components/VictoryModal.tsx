@@ -1,10 +1,12 @@
 import React, { useEffect, useRef } from 'react';
-import { Trophy, Download, ArrowRight, LayoutGrid, Sparkles } from 'lucide-react';
+import { Trophy, Download, ArrowRight, LayoutGrid, Sparkles, Coins, Bot } from 'lucide-react';
 import { PixelArtwork } from '../types';
 
 interface VictoryModalProps {
   isOpen: boolean;
   artwork: PixelArtwork;
+  isBotWin?: boolean;
+  coinsEarned?: number;
   onNextArtwork: () => void;
   onBackToGallery: () => void;
 }
@@ -12,6 +14,8 @@ interface VictoryModalProps {
 export const VictoryModal: React.FC<VictoryModalProps> = ({
   isOpen,
   artwork,
+  isBotWin = false,
+  coinsEarned = 5,
   onNextArtwork,
   onBackToGallery,
 }) => {
@@ -154,12 +158,20 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
         </div>
 
         {/* Title */}
-        <div className="space-y-1">
+        <div className="space-y-1.5">
           <h2 className="text-2xl font-black text-stone-900 dark:text-zinc-100 flex items-center justify-center gap-2">
-            <span>Artwork Completed!</span>
-            <Sparkles className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+            <span>{isBotWin ? 'You Beat the Bot!' : 'Artwork Completed!'}</span>
+            {isBotWin ? <Bot className="w-6 h-6 text-indigo-500 animate-bounce" /> : <Sparkles className="w-5 h-5 text-amber-500" />}
           </h2>
           <p className="text-sm text-stone-600 dark:text-zinc-400 font-medium">{artwork.title}</p>
+
+          {/* Coins Reward Badge */}
+          {coinsEarned > 0 && (
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 dark:bg-amber-950/60 border border-amber-300 dark:border-amber-800 text-amber-800 dark:text-amber-300 font-extrabold text-xs">
+              <Coins className="w-4 h-4 fill-amber-400 text-amber-600" />
+              <span>+{coinsEarned} Coins Earned!</span>
+            </div>
+          )}
         </div>
 
         {/* Preview Canvas */}

@@ -1,11 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Sparkles, Image as ImageIcon, Play, RotateCcw, Trash2, CheckCircle2, Search, Dices, Filter, Palette } from 'lucide-react';
+import { Sparkles, Image as ImageIcon, Play, RotateCcw, Trash2, CheckCircle2, Search, Dices, Filter, Palette, Lock, Coins, Bot, Swords } from 'lucide-react';
 import { PixelArtwork, SavedProgress } from '../types';
+import { UnlockModal } from './UnlockModal';
 
 interface GalleryViewProps {
   artworks: PixelArtwork[];
   savedProgressMap: Record<string, SavedProgress>;
-  onSelectArtwork: (artwork: PixelArtwork) => void;
+  unlockedArtworkIds: string[];
+  coins: number;
+  onSelectArtwork: (artwork: PixelArtwork, mode?: 'solo' | 'bot_race') => void;
+  onUnlockArtwork: (artworkId: string) => void;
   onOpenAiModal: () => void;
   onOpenUploadModal: () => void;
   onDeleteCustomArtwork: (id: string) => void;
@@ -18,7 +22,10 @@ interface GalleryViewProps {
 export const GalleryView: React.FC<GalleryViewProps> = ({
   artworks,
   savedProgressMap,
+  unlockedArtworkIds,
+  coins,
   onSelectArtwork,
+  onUnlockArtwork,
   onOpenAiModal,
   onOpenUploadModal,
   onDeleteCustomArtwork,
@@ -31,6 +38,7 @@ export const GalleryView: React.FC<GalleryViewProps> = ({
   const [selectedDifficulty, setSelectedDifficulty] = useState<string>('All');
   const [selectedStatus, setSelectedStatus] = useState<'All' | 'In Progress' | 'Completed'>('All');
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [artworkToUnlock, setArtworkToUnlock] = useState<PixelArtwork | null>(null);
 
   const categories = ['All', 'Animals', 'Anime', 'Famous Art', 'Food', 'Fantasy', 'Nature', 'Pop Culture', 'AI Generated', 'Custom Upload'];
 
@@ -292,6 +300,7 @@ export const GalleryView: React.FC<GalleryViewProps> = ({
       {/* Artwork Cards Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
         {filteredArtworks.map((artwork) => {
+          const isUnlocked = artwork.isUserCreated || unlockedArtworkIds.includes(artwork.id);
           const progressData = savedProgressMap[artwork.id];
           let progressPercent = 0;
           let isCompleted = false;
@@ -316,17 +325,40 @@ export const GalleryView: React.FC<GalleryViewProps> = ({
           return (
             <div
               key={artwork.id}
-              className="group relative bg-white dark:bg-zinc-900 rounded-2xl border border-stone-200 dark:border-zinc-800 hover:border-stone-400 dark:hover:border-zinc-700 p-3 flex flex-col justify-between transition-all hover:shadow-md hover:-translate-y-0.5"
+              className={`group relative bg-white dark:bg-zinc-900 rounded-2xl border p-3 flex flex-col justify-between transition-all hover:shadow-md hover:-translate-y-0.5 ${
+                isUnlocked
+                  ? 'border-stone-200 dark:border-zinc-800 hover:border-stone-400 dark:hover:border-zinc-700'
+                  : 'border-amber-300/80 dark:border-amber-900/60 bg-gradient-to-b from-amber-500/5 to-transparent'
+              }`}
             >
               {/* Thumbnail Container */}
               <div 
-                onClick={() => onSelectArtwork(artwork)}
+                onClick={() => {
+                  if (isUnlocked) {
+                    onSelectArtwork(artwork, 'solo');
+                  } else {
+                    setArtworkToUnlock(artwork);
+                  }
+                }}
                 className="relative aspect-square w-full rounded-xl bg-stone-100 dark:bg-zinc-800/80 flex items-center justify-center p-2 cursor-pointer overflow-hidden group-hover:bg-stone-200/60 dark:group-hover:bg-zinc-800 transition-colors border border-stone-200 dark:border-zinc-700/60"
               >
                 <ArtworkThumbnail artwork={artwork} progressData={progressData} />
 
+                {/* Locked Overlay */}
+                {!isUnlocked && (
+                  <div className="absolute inset-0 bg-stone-900/60 backdrop-blur-[2px] flex flex-col items-center justify-center text-white p-2 text-center gap-1.5 transition-all group-hover:bg-stone-900/50">
+                    <div className="w-9 h-9 rounded-xl bg-amber-500 text-stone-900 font-black flex items-center justify-center shadow-lg animate-bounce">
+                      <Lock className="w-5 h-5 stroke-[2.5]" />
+                    </div>
+                    <div className="inline-flex items-center gap-1 bg-amber-500 text-stone-900 font-extrabold text-[11px] px-2.5 py-0.5 rounded-full shadow-xs">
+                      <Coins className="w-3 h-3 fill-stone-900" />
+                      <span>5 Coins</span>
+                    </div>
+                  </div>
+                )}
+
                 {/* Completed Banner */}
-                {isCompleted && (
+                {isUnlocked && isCompleted && (
                   <div className="absolute top-2 right-2 bg-[#967259] dark:bg-zinc-100 text-white dark:text-zinc-900 px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider flex items-center gap-1 shadow-xs">
                     <CheckCircle2 className="w-3 h-3 text-amber-200 dark:text-emerald-700" /> Done
                   </div>
@@ -340,9 +372,16 @@ export const GalleryView: React.FC<GalleryViewProps> = ({
 
               {/* Title & Info */}
               <div className="mt-3 space-y-1">
-                <h3 className="font-bold text-sm text-stone-900 dark:text-zinc-100 truncate group-hover:text-[#967259] dark:group-hover:text-zinc-300 transition-colors">
-                  {artwork.title}
-                </h3>
+                <div className="flex items-center justify-between gap-1">
+                  <h3 className="font-bold text-sm text-stone-900 dark:text-zinc-100 truncate group-hover:text-[#967259] dark:group-hover:text-zinc-300 transition-colors">
+                    {artwork.title}
+                  </h3>
+                  {!isUnlocked && (
+                    <span className="text-[10px] font-extrabold px-1.5 py-0.5 rounded-md bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-200 dark:border-amber-800 shrink-0">
+                      Locked
+                    </span>
+                  )}
+                </div>
                 
                 <div className="flex items-center justify-between text-xs text-stone-500 dark:text-zinc-400">
                   <span>{artwork.category}</span>
@@ -352,31 +391,55 @@ export const GalleryView: React.FC<GalleryViewProps> = ({
                 </div>
 
                 {/* Progress bar */}
-                <div className="mt-2 space-y-1">
-                  <div className="flex items-center justify-between text-[11px] font-medium text-stone-500 dark:text-zinc-400">
-                    <span>Progress</span>
-                    <span className="font-mono text-[#6F523B] dark:text-zinc-200 font-bold">{progressPercent}%</span>
+                {isUnlocked && (
+                  <div className="mt-2 space-y-1">
+                    <div className="flex items-center justify-between text-[11px] font-medium text-stone-500 dark:text-zinc-400">
+                      <span>Progress</span>
+                      <span className="font-mono text-[#6F523B] dark:text-zinc-200 font-bold">{progressPercent}%</span>
+                    </div>
+                    <div className="w-full bg-[#E4D5C7] dark:bg-zinc-800 h-1.5 rounded-full overflow-hidden">
+                      <div
+                        className="bg-[#967259] dark:bg-zinc-300 h-full transition-all duration-300"
+                        style={{ width: `${progressPercent}%` }}
+                      />
+                    </div>
                   </div>
-                  <div className="w-full bg-[#E4D5C7] dark:bg-zinc-800 h-1.5 rounded-full overflow-hidden">
-                    <div
-                      className="bg-[#967259] dark:bg-zinc-300 h-full transition-all duration-300"
-                      style={{ width: `${progressPercent}%` }}
-                    />
-                  </div>
-                </div>
+                )}
               </div>
 
               {/* Action Buttons */}
-              <div className="mt-3 pt-2 border-t border-stone-100 dark:border-zinc-800 flex items-center justify-between gap-2">
-                <button
-                  onClick={() => onSelectArtwork(artwork)}
-                  className="flex-1 py-1.5 bg-[#967259] dark:bg-zinc-800 hover:bg-[#805D46] dark:hover:bg-zinc-700 text-white dark:text-zinc-100 font-semibold text-xs rounded-lg dark:border dark:border-zinc-700 transition-all flex items-center justify-center gap-1.5 shadow-xs"
-                >
-                  <Play className="w-3.5 h-3.5 fill-current" />
-                  <span>{progressPercent > 0 ? 'Continue' : 'Paint'}</span>
-                </button>
+              <div className="mt-3 pt-2 border-t border-stone-100 dark:border-zinc-800 flex items-center justify-between gap-1.5">
+                {isUnlocked ? (
+                  <>
+                    <button
+                      onClick={() => onSelectArtwork(artwork, 'solo')}
+                      className="flex-1 py-1.5 bg-[#967259] dark:bg-zinc-800 hover:bg-[#805D46] dark:hover:bg-zinc-700 text-white dark:text-zinc-100 font-semibold text-xs rounded-lg dark:border dark:border-zinc-700 transition-all flex items-center justify-center gap-1 shadow-xs"
+                      title="Play Solo Mode"
+                    >
+                      <Play className="w-3.5 h-3.5 fill-current" />
+                      <span>{progressPercent > 0 ? 'Continue' : 'Paint'}</span>
+                    </button>
 
-                {onCompleteArtwork && !isCompleted && (
+                    <button
+                      onClick={() => onSelectArtwork(artwork, 'bot_race')}
+                      className="px-2.5 py-1.5 bg-indigo-50 dark:bg-indigo-950/60 hover:bg-indigo-100 dark:hover:bg-indigo-900/80 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 font-bold text-xs rounded-lg transition-all flex items-center justify-center gap-1"
+                      title="Compete with Bot in 50/50 Split Race"
+                    >
+                      <Bot className="w-3.5 h-3.5" />
+                      <span className="hidden sm:inline">Vs Bot</span>
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    onClick={() => setArtworkToUnlock(artwork)}
+                    className="w-full py-1.5 bg-amber-500 hover:bg-amber-600 text-stone-900 font-extrabold text-xs rounded-lg shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                  >
+                    <Lock className="w-3.5 h-3.5" />
+                    <span>Unlock (5 Coins)</span>
+                  </button>
+                )}
+
+                {isUnlocked && onCompleteArtwork && !isCompleted && (
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
@@ -389,7 +452,7 @@ export const GalleryView: React.FC<GalleryViewProps> = ({
                   </button>
                 )}
 
-                {progressPercent > 0 && (
+                {isUnlocked && progressPercent > 0 && (
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
@@ -420,6 +483,18 @@ export const GalleryView: React.FC<GalleryViewProps> = ({
           );
         })}
       </div>
+
+      {/* Unlock Confirmation Modal */}
+      <UnlockModal
+        isOpen={Boolean(artworkToUnlock)}
+        artwork={artworkToUnlock}
+        coins={coins}
+        onUnlock={(artworkId) => {
+          onUnlockArtwork(artworkId);
+          setArtworkToUnlock(null);
+        }}
+        onClose={() => setArtworkToUnlock(null)}
+      />
 
     </div>
   );
